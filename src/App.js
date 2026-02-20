@@ -3,7 +3,6 @@ import React, { useState, useEffect } from "react";
 // Components
 import Header from "./components/Header";
 import BudgetTracker from "./components/BudgetTracker";
-import AiCoach from "./components/AiCoach";
 import ExpenseForm from "./components/ExpenseForm";
 import ExpenseList from "./components/ExpenseList";
 
@@ -25,9 +24,6 @@ function App() {
 
   const [isEditing, setIsEditing] = useState(false);
   const [currentExpenseId, setCurrentExpenseId] = useState(null);
-
-  const [aiBudgetTip, setAiBudgetTip] = useState("");
-  const [isAiLoading, setIsAiLoading] = useState(false);
 
   const [filter, setFilter] = useState("All");
 
@@ -87,50 +83,6 @@ function App() {
     }
   };
 
-  const getAiBudgetTip = async () => {
-    const api_key = process.env.REACT_APP_API_KEY;
-    setIsAiLoading(true);
-    setAiBudgetTip("");
-
-    const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${api_key}`;
-
-    const totalSpent = expenses.reduce((sum, exp) => sum + exp.amount, 0);
-    const situation =
-      budget && totalSpent > budget
-        ? "⚠️ I am OVER my budget. Give me a firm but encouraging tip."
-        : budget && totalSpent > budget * 0.8
-        ? "I am close to my budget. Give me a gentle warning tip."
-        : "I am within budget. Give me a positive saving tip.";
-
-    const prompt = `
-You are a helpful financial coach.
-Budget: $${budget}, Spent: $${totalSpent.toFixed(2)}.
-${situation}
-Rules:
-- Max 25 words
-- Friendly tone
-- Everyday language
-- No repeating my numbers
-`;
-
-    try {
-      const res = await fetch(API_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
-      });
-
-      const data = await res.json();
-      const tip = data.candidates?.[0]?.content?.parts?.[0]?.text;
-      setAiBudgetTip(tip || "Couldn't fetch tip. Keep up the great work!");
-    } catch (err) {
-      console.error("AI Error:", err);
-      setAiBudgetTip("AI service unavailable. Try again later.");
-    } finally {
-      setIsAiLoading(false);
-    }
-  };
-
   const filteredExpenses = expenses.filter((exp) =>
     filter === "All" ? true : exp.category === filter
   );
@@ -139,13 +91,17 @@ Rules:
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-950 to-black text-white font-sans p-4 sm:p-8">
       <div className="max-w-5xl mx-auto space-y-10">
+        
         {/* Header */}
         <Header />
 
-        {/* Stats + AI Coach */}
-        <section className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <BudgetTracker expenses={expenses} budget={budget} setBudget={setBudget} />
-          <AiCoach onGetTip={getAiBudgetTip} tip={aiBudgetTip} isLoading={isAiLoading} />
+        {/* Budget Section */}
+        <section>
+          <BudgetTracker
+            expenses={expenses}
+            budget={budget}
+            setBudget={setBudget}
+          />
         </section>
 
         {/* Expense Form + List */}
